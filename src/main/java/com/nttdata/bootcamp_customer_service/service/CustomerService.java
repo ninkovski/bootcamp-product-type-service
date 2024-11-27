@@ -1,6 +1,6 @@
 package com.nttdata.bootcamp_customer_service.service;
 
-import com.nttdata.bootcamp_customer_service.model.Customer;
+import com.nttdata.bootcamp_customer_service.model.collection.Customer;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

@@ -1,4 +1,4 @@
-package com.nttdata.bootcamp_customer_service.model;
+package com.nttdata.bootcamp_customer_service.model.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

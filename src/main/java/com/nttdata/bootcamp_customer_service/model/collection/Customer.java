@@ -1,6 +1,7 @@
-package com.nttdata.bootcamp_customer_service.model;
+package com.nttdata.bootcamp_customer_service.model.collection;
 
 
+import com.nttdata.bootcamp_customer_service.model.dto.CustomerType;
 import lombok.Data;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
@@ -12,7 +13,7 @@ public class Customer {
     private String id;
     private String name;
     private String documentNumber;
-    private String customerType; // Values: "PERSONAL", "BUSINESS"
+    private CustomerType customerType;
     private String email;
     private String phoneNumber;
 }

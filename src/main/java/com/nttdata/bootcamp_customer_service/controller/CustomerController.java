@@ -1,6 +1,6 @@
 package com.nttdata.bootcamp_customer_service.controller;
 
-import com.nttdata.bootcamp_customer_service.model.Customer;
+import com.nttdata.bootcamp_customer_service.model.collection.Customer;
 import com.nttdata.bootcamp_customer_service.service.CustomerService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

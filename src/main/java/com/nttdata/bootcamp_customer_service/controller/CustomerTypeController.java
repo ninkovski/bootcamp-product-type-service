@@ -1,7 +1,7 @@
 package com.nttdata.bootcamp_customer_service.controller;
 
 import com.nttdata.bootcamp_customer_service.config.CustomerTypeConfig;
-import com.nttdata.bootcamp_customer_service.model.CustomerType;
+import com.nttdata.bootcamp_customer_service.model.dto.CustomerType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

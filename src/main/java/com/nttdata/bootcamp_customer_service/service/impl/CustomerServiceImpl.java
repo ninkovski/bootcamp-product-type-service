@@ -1,6 +1,6 @@
 package com.nttdata.bootcamp_customer_service.service.impl;
 
-import com.nttdata.bootcamp_customer_service.model.Customer;
+import com.nttdata.bootcamp_customer_service.model.collection.Customer;
 import com.nttdata.bootcamp_customer_service.repository.CustomerRepository;
 import com.nttdata.bootcamp_customer_service.service.CustomerService;
 import org.springframework.stereotype.Service;

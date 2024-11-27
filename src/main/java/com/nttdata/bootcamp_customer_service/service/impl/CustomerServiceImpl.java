@@ -18,26 +18,34 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public Flux<Customer> getAllCustomers() {
-        return null;
+        return customerRepository.findAll();
     }
 
     @Override
     public Mono<Customer> getCustomerById(String id) {
-        return null;
+        return customerRepository.findById(id);
     }
 
     @Override
     public Mono<Customer> createCustomer(Customer customer) {
-        return null;
+        return customerRepository.save(customer);
     }
 
     @Override
     public Mono<Customer> updateCustomer(String id, Customer customer) {
-        return null;
+        return customerRepository.findById(id)
+                .flatMap(existingCustomer -> {
+                    existingCustomer.setName(customer.getName());
+                    existingCustomer.setDocumentNumber(customer.getDocumentNumber());
+                    existingCustomer.setCustomerType(customer.getCustomerType());
+                    existingCustomer.setEmail(customer.getEmail());
+                    existingCustomer.setPhoneNumber(customer.getPhoneNumber());
+                    return customerRepository.save(existingCustomer);
+                });
     }
 
     @Override
     public Mono<Void> deleteCustomer(String id) {
-        return null;
+        return customerRepository.deleteById(id);
     }
 }

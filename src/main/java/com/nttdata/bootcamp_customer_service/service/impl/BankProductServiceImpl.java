@@ -18,7 +18,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Log4j2
@@ -158,6 +160,8 @@ public class BankProductServiceImpl implements BankProductService {
                                     .body(new Response<>("Insufficient funds for transaction on product ID: " + productId, new BankProduct())));
                         }
                     }
+                    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                    transaction.setDate(dateFormat.format(new Date()));
                     // Actualizar el balance del producto
                     bankProduct.setBalance(currentBalance.add(transactionAmount));
                     // Establecer el monto ajustado (positivo o negativo) en la transacción

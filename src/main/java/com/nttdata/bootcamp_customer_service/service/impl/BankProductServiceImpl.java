@@ -38,10 +38,9 @@ public class BankProductServiceImpl implements BankProductService{
 
     @Override
     public Mono<ResponseEntity<BankProduct>> createBankProduct(BankProduct bankProduct) {
-
         List<AccountHolder> accountHolders = bankProduct.getAccountHolders();
+
         // Verificar que el producto bancario tenga un tipo válido
-        // MODIFICAR
         if (bankProduct.getTypeProductId() == null) {
             return Mono.just(ResponseEntity.badRequest().body(null));
         }
@@ -56,78 +55,79 @@ public class BankProductServiceImpl implements BankProductService{
             bankProduct.setBalance(BigDecimal.ZERO);
         }
 
+        // Validar que tenga al menos un titular
         if (accountHolders == null || accountHolders.isEmpty()) {
             log.error("Bank product must have at least one account holder.");
-            return Mono.just(ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(null));
+            return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
         }
+
+        // Obtener IDs únicos de los titulares
         List<String> customerIds = accountHolders.stream()
                 .map(AccountHolder::getCustomerId)
                 .distinct()
                 .toList();
 
+        // Validar que todos los titulares
         Flux<Customer> accountCustomerHolders = customerRepository.findByIdIn(customerIds);
-        // Validar que todos los accountHolders sean del mismo tipo (personal o empresarial)
-        Mono<Boolean> isAllPersonal = accountCustomerHolders
-                .all(customer -> "Personal".equalsIgnoreCase(customer.getCustomerType()));
 
-        Mono<Boolean> isAllBusiness = accountCustomerHolders
-                .all(customer -> "Empresarial".equalsIgnoreCase(customer.getCustomerType()));
+        // Consultar detalles de productos existentes
+        // Reglas para clientes personales
+        // Reglas para clientes empresariales (solo cuentas corrientes)
+        // Si pasa las validaciones, guardar el producto
 
-        if (!(isAllPersonal || isAllBusiness)) {
-            log.error("All account holders must be of the same type: personal or business.");
-            return Mono.just(ResponseEntity
-                    .status(HttpStatus.BAD_REQUEST)
-                    .body(null));
-        }
-        // Consultar detalles de los productos por sus IDs
-        return Flux.fromIterable(bankProduct.getAccountHolders())
-                .flatMap(holder -> bankProductRepository.findAllByCustomerId(holder.getCustomerId()))
-                .flatMap(existingProduct -> productTypeRepository.findById(existingProduct.getTypeProductId()))
+        return accountCustomerHolders
                 .collectList()
-                .flatMap(productDetails -> {
-                    boolean isValid = true;
+                .flatMap(customers -> {
+                    boolean isAllPersonal = customers.stream()
+                            .allMatch(customer -> "Personal".equalsIgnoreCase(customer.getCustomerType()));
+                    boolean isAllBusiness = customers.stream()
+                            .allMatch(customer -> "Empresarial".equalsIgnoreCase(customer.getCustomerType()));
 
-                    if (isAllPersonal) {
-                        // Validar reglas para clientes personales
-                        long savingAccounts = productDetails.stream()
-                                .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getSaving())).count();
-                        long currentAccounts = productDetails.stream()
-                                .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getCurrent())).count();
-                        long fixedAccounts = productDetails.stream()
-                                .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getFixed())).count();
-                        long credits = productDetails.stream()
-                                .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getCredit())).count();
-
-                        isValid = savingAccounts <= 1 && currentAccounts <= 1 && fixedAccounts <= 1 && credits <= 1;
-
-                    } else {
-                        // Validar que solo puedan tener cuentas corrientes
-                        boolean hasInvalidAccount = productDetails.stream()
-                                .anyMatch(p -> !p.getName().equalsIgnoreCase(productTypeConfig.getCurrent()));
-                        isValid = !hasInvalidAccount;
+                    if (!isAllPersonal && !isAllBusiness) {
+                        log.error("All account holders must be of the same type: personal or business.");
+                        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
                     }
 
-                    if (!isValid) {
-                        log.error("Validation failed for the bank product.");
-                        return Mono.just(ResponseEntity
-                                .status(HttpStatus.BAD_REQUEST)
-                                .body(null));
-                    }
+                    // Consultar detalles de productos existentes
+                    return Flux.fromIterable(bankProduct.getAccountHolders())
+                            .flatMap(holder -> bankProductRepository.findAllByCustomerId(holder.getCustomerId()))
+                            .flatMap(existingProduct -> productTypeRepository.findById(existingProduct.getTypeProductId()))
+                            .collectList()
+                            .flatMap(productDetails -> {
+                                boolean isValid;
 
-                    // Si pasa las validaciones, guardar el producto
-                    return bankProductRepository.save(bankProduct)
-                            .doOnSuccess(savedBankProduct -> log.info("Bank product created successfully with ID: {}", savedBankProduct.getId()))
-                            .doOnError(error -> log.error("Error occurred while creating bank product: {}", error.getMessage()))
-                            .map(savedBankProduct -> ResponseEntity
-                                    .status(HttpStatus.CREATED)
-                                    .body(savedBankProduct))
-                            .onErrorResume(error -> Mono.just(ResponseEntity
-                                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                                    .body(null)));
+                                if (isAllPersonal) {
+                                    // Reglas para clientes personales
+                                    long savingAccounts = productDetails.stream()
+                                            .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getSaving())).count();
+                                    long currentAccounts = productDetails.stream()
+                                            .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getCurrent())).count();
+                                    long fixedAccounts = productDetails.stream()
+                                            .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getFixed())).count();
+                                    long credits = productDetails.stream()
+                                            .filter(p -> p.getName().equalsIgnoreCase(productTypeConfig.getCredit())).count();
+
+                                    isValid = savingAccounts <= 1 && currentAccounts <= 1 && fixedAccounts <= 1 && credits <= 1;
+                                } else {
+                                    // Reglas para clientes empresariales (solo cuentas corrientes)
+                                    boolean hasInvalidAccount = productDetails.stream()
+                                            .anyMatch(p -> !p.getName().equalsIgnoreCase(productTypeConfig.getCurrent()));
+                                    isValid = !hasInvalidAccount;
+                                }
+
+                                if (!isValid) {
+                                    log.error("Validation failed for the bank product.");
+                                    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
+                                }
+
+                                // Si pasa las validaciones, guardar el producto
+                                return bankProductRepository.save(bankProduct)
+                                        .doOnSuccess(savedBankProduct -> log.info("Bank product created successfully with ID: {}", savedBankProduct.getId()))
+                                        .doOnError(error -> log.error("Error occurred while creating bank product: {}", error.getMessage()))
+                                        .map(savedBankProduct -> ResponseEntity.status(HttpStatus.CREATED).body(savedBankProduct))
+                                        .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)));
+                            });
                 });
-
     }
 
     @Override

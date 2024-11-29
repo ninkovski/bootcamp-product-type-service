@@ -2,6 +2,7 @@ package com.nttdata.bootcamp_customer_service.service;
 
 import com.nttdata.bootcamp_customer_service.model.collection.BankProduct;
 import com.nttdata.bootcamp_customer_service.model.dto.Transaction;
+import com.nttdata.bootcamp_customer_service.model.response.Response;
 import org.springframework.http.ResponseEntity;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -10,19 +11,19 @@ import java.math.BigDecimal;
 import java.util.List;
 
 public interface BankProductService {
-    Mono<ResponseEntity<BankProduct>> createBankProduct(BankProduct bankProduct);
+    Mono<ResponseEntity<Response<BankProduct>>> createBankProduct(BankProduct bankProduct);
 
-    Flux<ResponseEntity<BankProduct>> getAllBankProducts();
+    Flux<ResponseEntity<Response<BankProduct>>> getAllBankProducts();
 
-    Mono<ResponseEntity<BankProduct>> getBankProductById(String productId);
+    Mono<ResponseEntity<Response<BankProduct>>> getBankProductById(String productId);
 
-    Mono<ResponseEntity<BankProduct>> updateBankProduct(String productId, BankProduct bankProduct);
+    //Mono<ResponseEntity<Response<BankProduct>>> updateBankProduct(String productId, BankProduct bankProduct);
 
-    Mono<ResponseEntity<Object>> deleteBankProduct(String productId);
+    Mono<ResponseEntity<Response<Object>>> deleteBankProduct(String productId);
 
-    Mono<ResponseEntity<BigDecimal>> getProductBalance(String productId);
+    Mono<ResponseEntity<Response<BigDecimal>>> getProductBalance(String productId);
 
-    Mono<ResponseEntity<List<Transaction>>> getProductTransactions(String productId);
+    Mono<ResponseEntity<Response<List<Transaction>>>> getProductTransactions(String productId);
 
-    Mono<ResponseEntity<BankProduct>> makeTransaction(String productId, Transaction transaction);
+    Mono<ResponseEntity<Response<BankProduct>>> makeTransaction(String productId, Transaction transaction);
 }

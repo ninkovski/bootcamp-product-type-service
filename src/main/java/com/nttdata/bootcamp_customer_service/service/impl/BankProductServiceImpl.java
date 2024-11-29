@@ -5,6 +5,7 @@ import com.nttdata.bootcamp_customer_service.model.collection.BankProduct;
 import com.nttdata.bootcamp_customer_service.model.collection.Customer;
 import com.nttdata.bootcamp_customer_service.model.dto.Transaction;
 import com.nttdata.bootcamp_customer_service.model.dto.AccountHolder;
+import com.nttdata.bootcamp_customer_service.model.response.Response;
 import com.nttdata.bootcamp_customer_service.repository.BankProductRepository;
 import com.nttdata.bootcamp_customer_service.repository.CustomerRepository;
 import com.nttdata.bootcamp_customer_service.repository.ProductTypeRepository;
@@ -22,7 +23,7 @@ import java.util.List;
 
 @Log4j2
 @Service
-public class BankProductServiceImpl implements BankProductService{
+public class BankProductServiceImpl implements BankProductService {
 
     private final BankProductRepository bankProductRepository;
     private final ProductTypeRepository productTypeRepository;
@@ -37,12 +38,13 @@ public class BankProductServiceImpl implements BankProductService{
     }
 
     @Override
-    public Mono<ResponseEntity<BankProduct>> createBankProduct(BankProduct bankProduct) {
+    public Mono<ResponseEntity<Response<BankProduct>>> createBankProduct(BankProduct bankProduct) {
         List<AccountHolder> accountHolders = bankProduct.getAccountHolders();
 
         // Verificar que el producto bancario tenga un tipo válido
         if (bankProduct.getTypeProductId() == null) {
-            return Mono.just(ResponseEntity.badRequest().body(null));
+            return Mono.just(ResponseEntity.badRequest()
+                    .body(new Response<>("El producto bancario debe tener un tipo válido.", null)));
         }
 
         // Inicializar la lista de transacciones si está vacía
@@ -58,7 +60,8 @@ public class BankProductServiceImpl implements BankProductService{
         // Validar que tenga al menos un titular
         if (accountHolders == null || accountHolders.isEmpty()) {
             log.error("Bank product must have at least one account holder.");
-            return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
+            return Mono.just(ResponseEntity.badRequest()
+                    .body(new Response<>("Bank product must have at least one account holder.", null)));
         }
 
         // Obtener IDs únicos de los titulares
@@ -81,11 +84,13 @@ public class BankProductServiceImpl implements BankProductService{
                     boolean isAllPersonal = customers.stream()
                             .allMatch(customer -> "Personal".equalsIgnoreCase(customer.getCustomerType()));
                     boolean isAllBusiness = customers.stream()
-                            .allMatch(customer -> "Empresarial".equalsIgnoreCase(customer.getCustomerType()));
+                            .allMatch(customer -> "Business".equalsIgnoreCase(customer.getCustomerType()));
 
                     if (!isAllPersonal && !isAllBusiness) {
                         log.error("All account holders must be of the same type: personal or business.");
-                        return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
+                        return Mono.just(ResponseEntity.badRequest()
+                                .body(new Response<>("All account holders must be of the same type: personal or business.", null)));
+
                     }
 
                     // Consultar detalles de productos existentes
@@ -117,21 +122,25 @@ public class BankProductServiceImpl implements BankProductService{
 
                                 if (!isValid) {
                                     log.error("Validation failed for the bank product.");
-                                    return Mono.just(ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null));
+                                    return Mono.just(ResponseEntity.badRequest()
+                                            .body(new Response<>("Validation failed for the bank product.", null)));
+
                                 }
 
                                 // Si pasa las validaciones, guardar el producto
                                 return bankProductRepository.save(bankProduct)
                                         .doOnSuccess(savedBankProduct -> log.info("Bank product created successfully with ID: {}", savedBankProduct.getId()))
                                         .doOnError(error -> log.error("Error occurred while creating bank product: {}", error.getMessage()))
-                                        .map(savedBankProduct -> ResponseEntity.status(HttpStatus.CREATED).body(savedBankProduct))
-                                        .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null)));
+                                        .map(savedBankProduct -> ResponseEntity.status(HttpStatus.CREATED)
+                                                .body(new Response<>("Bank product created successfully.", savedBankProduct)))
+                                        .onErrorResume(error -> Mono.just(ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                                                .body(new Response<>("An error occurred while creating the bank product.", null))));
                             });
                 });
     }
 
     @Override
-    public Mono<ResponseEntity<BankProduct>> makeTransaction(String productId, Transaction transaction) {
+    public Mono<ResponseEntity<Response<BankProduct>>> makeTransaction(String productId, Transaction transaction) {
         return bankProductRepository.findById(productId)
                 .flatMap(bankProduct -> {
                     BigDecimal currentBalance = bankProduct.getBalance();
@@ -144,9 +153,9 @@ public class BankProductServiceImpl implements BankProductService{
                         // Validar si hay suficiente balance para realizar el retiro
                         if (currentBalance.add(transactionAmount).compareTo(BigDecimal.ZERO) < 0) {
                             log.error("Insufficient funds for transaction on product ID: {}", productId);
-                            return Mono.just(ResponseEntity
-                                    .status(HttpStatus.BAD_REQUEST)
-                                    .body(new BankProduct())); // Devuelve un error 400 si no hay suficiente balance
+                            // Devuelve un error 400 si no hay suficiente balance
+                            return Mono.just(ResponseEntity.badRequest()
+                                    .body(new Response<>("Insufficient funds for transaction on product ID: " + productId, new BankProduct())));
                         }
                     }
                     // Actualizar el balance del producto
@@ -159,36 +168,37 @@ public class BankProductServiceImpl implements BankProductService{
                     return bankProductRepository.save(bankProduct)
                             .map(savedProduct -> {
                                 log.info("Transaction successful for product ID: {}. New balance: {}", savedProduct.getId(), savedProduct.getBalance());
-                                return ResponseEntity.ok(savedProduct);
+                                return ResponseEntity.status(HttpStatus.CREATED)
+                                        .body(new Response<>("Transaction successful for product ID: " + savedProduct.getId() + ". New balance: " + savedProduct.getBalance(), savedProduct));
                             });
                 })
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(null))); // Devuelve un error 404 si el producto no existe
+                        .body(new Response<>("Product not found with product ID: " + productId, new BankProduct()))));
     }
 
     @Override
-    public Mono<ResponseEntity<BigDecimal>> getProductBalance(String productId) {
+    public Mono<ResponseEntity<Response<BigDecimal>>> getProductBalance(String productId) {
         return bankProductRepository.findById(productId)
                 .map(BankProduct::getBalance)
-                .map(ResponseEntity::ok)
+                .map(balance -> ResponseEntity.ok(new Response<>("Balance retrieved successfully.", balance))) // Wrap the balance in the Response
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(null)));
+                        .body(new Response<>("Product not found with product ID: " + productId, null)))); // Null for no data
     }
 
     @Override
-    public Mono<ResponseEntity<List<Transaction>>> getProductTransactions(String productId) {
+    public Mono<ResponseEntity<Response<List<Transaction>>>> getProductTransactions(String productId) {
         return bankProductRepository.findById(productId)
                 .flatMapMany(bankProduct -> Flux.fromIterable(bankProduct.getTransactions()))
                 .collectList()
-                .map(ResponseEntity::ok)
+                .map(transactions -> ResponseEntity.ok(new Response<>("Transactions retrieved successfully.", transactions))) // Wrap the transactions in the Response
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(null)));
+                        .body(new Response<>("No transactions found for product ID: " + productId, null)))); // Null for no data
     }
 
-    @Override
+    /*@Override
     public Mono<ResponseEntity<BankProduct>> updateBankProduct(String productId, BankProduct bankProduct) {
         return bankProductRepository.findById(productId)
                 .flatMap(existingProduct -> {
@@ -207,33 +217,36 @@ public class BankProductServiceImpl implements BankProductService{
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
                         .body(null)));
-    }
+    }*/
 
     @Override
-    public Mono<ResponseEntity<Object>> deleteBankProduct(String productId) {
+    public Mono<ResponseEntity<Response<Object>>> deleteBankProduct(String productId) {
         return bankProductRepository.findById(productId)
                 .flatMap(existingProduct -> bankProductRepository.delete(existingProduct)
-                        .then(Mono.just(ResponseEntity.noContent().build())))
+                        .then(Mono.just(ResponseEntity
+                                .status(HttpStatus.NO_CONTENT)
+                                .body(new Response<>("Bank product deleted successfully.", null))))) // Success message with no data
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .build()));
-    }
-    @Override
-    public Flux<ResponseEntity<BankProduct>> getAllBankProducts() {
-        return bankProductRepository.findAll()
-                .map(ResponseEntity::ok) // Mapear cada producto a ResponseEntity con status 200
-                .switchIfEmpty(Flux.just(ResponseEntity
-                        .status(HttpStatus.NO_CONTENT)
-                        .body(null))); // En caso de que no haya productos, devolver 204
+                        .body(new Response<>("Bank product not found with product ID: " + productId, null)))); // Error message with no data
     }
 
     @Override
-    public Mono<ResponseEntity<BankProduct>> getBankProductById(String productId) {
+    public Flux<ResponseEntity<Response<BankProduct>>> getAllBankProducts() {
+        return bankProductRepository.findAll()
+                .map(bankProduct -> ResponseEntity.ok(new Response<>("Bank products retrieved successfully", bankProduct))) // Mapear cada producto a ResponseEntity con mensaje de éxito
+                .switchIfEmpty(Flux.just(ResponseEntity
+                        .status(HttpStatus.NO_CONTENT)
+                        .body(new Response<>("No bank products found.", null)))); // En caso de que no haya productos, devolver 204 con mensaje
+    }
+
+    @Override
+    public Mono<ResponseEntity<Response<BankProduct>>> getBankProductById(String productId) {
         return bankProductRepository.findById(productId)
-                .map(ResponseEntity::ok) // Si el producto existe, devolver 200 con el producto
+                .map(bankProduct -> ResponseEntity.ok(new Response<>("Bank product found.", bankProduct))) // Si el producto existe, devolver 200 con mensaje y producto
                 .switchIfEmpty(Mono.just(ResponseEntity
                         .status(HttpStatus.NOT_FOUND)
-                        .body(null))); // Si el producto no se encuentra, devolver 404
+                        .body(new Response<>("Bank product not found with product ID: " + productId, null)))); // Si el producto no se encuentra, devolver 404 con mensaje
     }
 
 }

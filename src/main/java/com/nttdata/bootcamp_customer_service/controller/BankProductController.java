@@ -2,6 +2,7 @@ package com.nttdata.bootcamp_customer_service.controller;
 
 import com.nttdata.bootcamp_customer_service.model.collection.BankProduct;
 import com.nttdata.bootcamp_customer_service.model.dto.Transaction;
+import com.nttdata.bootcamp_customer_service.model.response.Response;
 import com.nttdata.bootcamp_customer_service.service.BankProductService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,49 +23,49 @@ public class BankProductController {
 
     // Crear un producto bancario
     @PostMapping
-    public Mono<ResponseEntity<BankProduct>> createBankProduct(@RequestBody BankProduct bankProduct) {
+    public Mono<ResponseEntity<Response<BankProduct>>> createBankProduct(@RequestBody BankProduct bankProduct) {
         return bankProductService.createBankProduct(bankProduct);
     }
 
     // Consultar todos los productos bancarios
     @GetMapping
-    public Flux<ResponseEntity<BankProduct>> getAllBankProducts() {
+    public Flux<ResponseEntity<Response<BankProduct>>> getAllBankProducts() {
         return bankProductService.getAllBankProducts();
     }
 
     // Consultar un producto bancario por ID
     @GetMapping("/{productId}")
-    public Mono<ResponseEntity<BankProduct>> getBankProduct(@PathVariable String productId) {
+    public Mono<ResponseEntity<Response<BankProduct>>> getBankProduct(@PathVariable String productId) {
         return bankProductService.getBankProductById(productId);
     }
 
     // Actualizar un producto bancario
-    @PutMapping("/{productId}")
-    public Mono<ResponseEntity<BankProduct>> updateBankProduct(@PathVariable String productId, @RequestBody BankProduct bankProduct) {
+    /*@PutMapping("/{productId}")
+    public Mono<ResponseEntity<Response<BankProduct>>> updateBankProduct(@PathVariable String productId, @RequestBody BankProduct bankProduct) {
         return bankProductService.updateBankProduct(productId, bankProduct);
-    }
+    }*/
 
     // Eliminar un producto bancario
     @DeleteMapping("/{productId}")
-    public Mono<ResponseEntity<Object>> deleteBankProduct(@PathVariable String productId) {
+    public Mono<ResponseEntity<Response<Object>>> deleteBankProduct(@PathVariable String productId) {
         return bankProductService.deleteBankProduct(productId);
     }
 
     // Realizar una transacción (depósito o retiro)
     @PostMapping("/{productId}/transaction")
-    public Mono<ResponseEntity<BankProduct>> makeTransaction(@PathVariable String productId, @RequestBody Transaction transaction) {
+    public Mono<ResponseEntity<Response<BankProduct>>> makeTransaction(@PathVariable String productId, @RequestBody Transaction transaction) {
         return bankProductService.makeTransaction(productId, transaction);
     }
 
     // Consultar saldo de un producto
     @GetMapping("/{productId}/balance")
-    public Mono<ResponseEntity<BigDecimal>> getProductBalance(@PathVariable String productId) {
+    public Mono<ResponseEntity<Response<BigDecimal>>> getProductBalance(@PathVariable String productId) {
         return bankProductService.getProductBalance(productId);
     }
 
     // Consultar todos los movimientos de un producto bancario
     @GetMapping("/{productId}/transactions")
-    public Mono<ResponseEntity<List<Transaction>>> getProductTransactions(@PathVariable String productId) {
+    public Mono<ResponseEntity<Response<List<Transaction>>>> getProductTransactions(@PathVariable String productId) {
         return bankProductService.getProductTransactions(productId);
     }
 }

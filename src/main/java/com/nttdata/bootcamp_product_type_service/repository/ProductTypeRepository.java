@@ -1,6 +1,6 @@
-package com.nttdata.bootcamp_customer_service.repository;
+package com.nttdata.bootcamp_product_type_service.repository;
 
-import com.nttdata.bootcamp_customer_service.model.collection.ProductType;
+import com.nttdata.bootcamp_product_type_service.model.collection.ProductType;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 
 

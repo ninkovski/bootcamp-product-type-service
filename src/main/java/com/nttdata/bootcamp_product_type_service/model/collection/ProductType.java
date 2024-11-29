@@ -1,4 +1,4 @@
-package com.nttdata.bootcamp_customer_service.model.collection;
+package com.nttdata.bootcamp_product_type_service.model.collection;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;

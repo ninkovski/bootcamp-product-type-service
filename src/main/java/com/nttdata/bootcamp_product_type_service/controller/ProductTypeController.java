@@ -1,7 +1,7 @@
-package com.nttdata.bootcamp_customer_service.controller;
+package com.nttdata.bootcamp_product_type_service.controller;
 
-import com.nttdata.bootcamp_customer_service.model.collection.ProductType;
-import com.nttdata.bootcamp_customer_service.service.ProductTypeService;
+import com.nttdata.bootcamp_product_type_service.model.collection.ProductType;
+import com.nttdata.bootcamp_product_type_service.service.ProductTypeService;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

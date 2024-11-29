@@ -1,8 +1,8 @@
-package com.nttdata.bootcamp_customer_service.service.impl;
+package com.nttdata.bootcamp_product_type_service.service.impl;
 
-import com.nttdata.bootcamp_customer_service.model.collection.ProductType;
-import com.nttdata.bootcamp_customer_service.repository.ProductTypeRepository;
-import com.nttdata.bootcamp_customer_service.service.ProductTypeService;
+import com.nttdata.bootcamp_product_type_service.model.collection.ProductType;
+import com.nttdata.bootcamp_product_type_service.repository.ProductTypeRepository;
+import com.nttdata.bootcamp_product_type_service.service.ProductTypeService;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

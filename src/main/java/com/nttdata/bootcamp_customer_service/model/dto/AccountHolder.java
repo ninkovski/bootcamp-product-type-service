@@ -5,5 +5,5 @@ import lombok.Data;
 @Data
 public class AccountHolder {
     private String customerId;
-    private boolean isHolder;
+    private Boolean isHolder;
 }

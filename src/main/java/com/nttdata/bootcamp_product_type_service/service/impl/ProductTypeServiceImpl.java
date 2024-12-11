@@ -7,6 +7,9 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 @Service
 public class ProductTypeServiceImpl implements ProductTypeService {
     private final ProductTypeRepository productTypeRepository;
@@ -17,7 +20,37 @@ public class ProductTypeServiceImpl implements ProductTypeService {
 
     @Override
     public Mono<ProductType> createProductType(ProductType productType) {
+        if (productType.getAmount() == null) {
+            productType.setAmount(BigDecimal.ZERO);
+        } else if (productType.getAmount().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El monto no puede ser negativo");
+        } else {
+            productType.setAmount(productType.getAmount().setScale(2, RoundingMode.HALF_UP));
+        }
+
+        if (productType.getCommission() == null) {
+            productType.setCommission(BigDecimal.ZERO);
+        } else if (productType.getCommission().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("La comisión no puede ser negativa");
+        } else {
+            productType.setCommission(productType.getCommission().setScale(2, RoundingMode.HALF_UP));
+        }
+
+        if (productType.getTransactionCount() == null) {
+            productType.setTransactionCount(0);
+        } else if (productType.getTransactionCount() < 0) {
+            throw new IllegalArgumentException("El conteo de transacciones no puede ser negativo");
+        }
+
+        if (productType.getInterest() == null) {
+            productType.setInterest(BigDecimal.ZERO);
+        } else if (productType.getInterest().compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException("El interés no puede ser negativo");
+        } else {
+            productType.setInterest(productType.getInterest().setScale(2, RoundingMode.HALF_UP));
+        }
         return productTypeRepository.save(productType);
+
     }
 
     @Override
@@ -38,6 +71,9 @@ public class ProductTypeServiceImpl implements ProductTypeService {
                     existingProductType.setType(productType.getType());
                     existingProductType.setCommission(productType.getCommission());
                     existingProductType.setTransactionCount(productType.getTransactionCount());
+                    existingProductType.setInterest(productType.getInterest());
+                    existingProductType.setPeriod(productType.getPeriod());
+                    existingProductType.setAmount(productType.getAmount());
                     return productTypeRepository.save(existingProductType);
                 });
     }
